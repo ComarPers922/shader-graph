@@ -39,13 +39,17 @@ CCProgram pbr-vs %{
   #endif
 
   precision highp float;
-  #include <input-standard>
-  #include <cc-global>
-  #include <cc-local-batch>
-  #include <properties>
+  #include <legacy/input-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+  #include <legacy/decode-base>
+  #include <common/data/packing>
+  #include <legacy/fog-vs>
 
-  #include <cc-fog-vs>
-  #include <cc-shadow-map-vs>
+  #if CC_USE_LIGHTMAP && !CC_FORWARD_ADD
+    #include <legacy/lightingmap-vs>
+  #endif
+  #include <legacy/shadow-map-vs>
 
   in vec3 a_color;
   out vec3 v_color;
@@ -111,9 +115,9 @@ CCProgram pbr-fs %{
   #endif
   
   precision highp float;
-  #include <cc-global>
+  #include <builtin/uniforms/cc-global>
   #include <properties>
-  #include <cc-fog-fs>
+  // #include <cc-fog-fs>
   #include <standard-surface-entry>
   #if USE_LIGHTMAP && !USE_BATCHING && !CC_FORWARD_ADD
     #include <lightingmap-fs>

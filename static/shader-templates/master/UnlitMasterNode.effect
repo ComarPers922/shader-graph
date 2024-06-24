@@ -67,10 +67,13 @@ CCProgram unlit-vs %{
   #endif
 
   precision highp float;
-  #include <input>
-  #include <cc-global>
-  #include <cc-local-batch>
+  #include <legacy/input>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
   #include <properties>
+  #include <common/data/packing>
+  #include <legacy/shading-standard>
+  
 
   {{vs_chunks}}
   {{vs_varing_define}}
@@ -107,6 +110,8 @@ CCProgram unlit-fs %{
   precision highp float;
   #include <output>
   #include <properties>
+  #include <common/data/packing>
+  #include <legacy/shading-standard>
   
   {{fs_chunks}}
   {{fs_varing_define}}

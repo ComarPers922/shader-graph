@@ -162,6 +162,18 @@ export enum ShaderSlotType {
 }
 
 export class ShaderSlot {
+    public static readonly DISPLAY_NAME_DICT = new Map
+    (
+        [
+            ["BaseColor", "Albedo"],
+            ["Normal(TangentSpace)", "tangentNormal"],
+            ["Normal(WorldSpace)", "Normal"],
+            ["NormalWS", "Normal"],
+            ["Normal(ObjectSpace)", "objectNormal"],
+            ["AmbientOcclusion", "Occlusion"],
+        ]
+    )
+
     typeInfo = {};
     data: any = {}
 
@@ -195,7 +207,12 @@ export class ShaderSlot {
 
         this.id = this.data.m_Id;
         this.globalID = _GlobalShaderSlotID_++;
-        this.displayName = this.data.m_DisplayName;
+        this.displayName = this.data.m_DisplayName.replace(/\s/g, '');
+        let translatedName = ShaderSlot.DISPLAY_NAME_DICT.get(this.displayName)
+        if (translatedName)
+        {
+            this.displayName = translatedName
+        }
     }
 
     get varName () {
