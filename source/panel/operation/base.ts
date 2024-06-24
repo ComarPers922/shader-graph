@@ -162,6 +162,8 @@ export enum ShaderSlotType {
 }
 
 export class ShaderSlot {
+    // New shader graph uses different terms than the old one,
+    // so we need to translate those terms as well.
     public static readonly DISPLAY_NAME_DICT = new Map
     (
         [
@@ -207,6 +209,7 @@ export class ShaderSlot {
 
         this.id = this.data.m_Id;
         this.globalID = _GlobalShaderSlotID_++;
+        
         this.displayName = this.data.m_DisplayName.replace(/\s/g, '');
         let translatedName = ShaderSlot.DISPLAY_NAME_DICT.get(this.displayName)
         if (translatedName)

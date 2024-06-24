@@ -14,10 +14,13 @@ export default class ShaderGraph {
 
     static allNodes: ShaderNode[][] = [];
 
+    // Convert the data of new format back to the old one,
+    // so there is no need to rewrite the core code of shader conversion.
     static getOldNodeData(targetNode: any, rawNodeMap: Map<string, any>)
     {
         let convertedNode = JSON.parse(JSON.stringify(targetNode))
         let needsSlotGeneration = false
+        // We must not override slots if there is already a non-null slots.
         if (!convertedNode.m_SerializableSlots)
         {
             convertedNode.m_SerializableSlots = Array<any>()
@@ -35,10 +38,13 @@ export default class ShaderGraph {
         {
             convertedNode.m_Guid.m_GuidSerialized = targetNode.m_ObjectId
         }
-
+        // The core shader conversion code reads the property "JSONnodeData",
+        // which stores all information about this node,
+        // for translation, so we need to serialize this node into this property.
         let rawNode = rawNodeMap.get(targetNode.m_ObjectId)
         if (rawNode.m_Slots !== undefined && needsSlotGeneration)
         {
+            // The slot is the same as node, we need to store everything into "JSONnodeData".
             for (let slot of rawNode.m_Slots)
             {
                 let id = slot.m_Id
@@ -59,6 +65,8 @@ export default class ShaderGraph {
         return convertedNode
     }
 
+    // The new version of shader graph writes all JSONs into one file,
+    // we need to split them.
     static GetAllObjs(jsonStr: string)
     {
         const result = jsonStr.split(/\n\s*\n/);
@@ -94,6 +102,8 @@ export default class ShaderGraph {
         return result
     }
 
+    // If there is a m_Type "UnityEditor.ShaderGraph.GraphData" found in the shader graph file,
+    // it is the new version of shader graph required to be translated.
     static searchNodesVersion3(jsonStr: string)
     {
         let jsonObjs: any[] = this.GetAllObjs(jsonStr)
@@ -143,6 +153,9 @@ export default class ShaderGraph {
 
         mainGraphData.m_type = "UnityEditor.ShaderGraph.PBRMasterNode"
         mainGraphData.m_SerializableSlots = []
+        // In old shader graph, all outputs are stored in the master node, however,
+        // there are stored in block nodes in the new version.
+        // We need to read all block nodes, then add those outputs back to the master node.
         let curID = 0
         for (let blockNode of rawNodeMap.values())
         {
@@ -174,6 +187,8 @@ export default class ShaderGraph {
         if (jsonStr.includes("UnityEditor.Rendering.BuiltIn.ShaderGraph.BuiltInUnlitSubTarget"))
         {
             newMasterNode = new UnlitMasterNode(this.getOldNodeData(mainGraphData, rawNodeMap))
+            // Albedo is the base color used in PBR shader,
+            // but it is called "Color" in unlit shader.
             const colorNode = newMasterNode.slots.find(node => node.displayName === "Albedo")
             if (colorNode)
             {
@@ -223,6 +238,7 @@ export default class ShaderGraph {
             }
 
             let inputNodeType = (inputNode.type as any)?.fullName
+            // If the target of the output node is a block node, redirect the target to the master node.
             let isBlockNode = inputNodeType === "UnityEditor.ShaderGraph.BlockNode"
             if (isBlockNode)
             {
@@ -237,6 +253,7 @@ export default class ShaderGraph {
             let inputNodeSlot: ShaderSlot | undefined
             if (isBlockNode)
             {
+                // Output redirection.
                 inputNodeSlot = masterNodeSlotMapValues.find(slot =>
                     {
                         let inputNodeName = inputNode!.data.m_Name.replace("SurfaceDescription.", "")
@@ -245,6 +262,7 @@ export default class ShaderGraph {
                         {
                             inputNodeName = translatedName
                         }
+                        // Just do the translation again...
                         if (newMasterNode instanceof UnlitMasterNode && inputNodeName === "Albedo")
                         {
                             inputNodeName = "Color"
