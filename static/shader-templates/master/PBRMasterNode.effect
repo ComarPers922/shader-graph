@@ -31,6 +31,7 @@ CCProgram properties %{
   };
 
   {{properties_sampler}}
+  {{properties_booleans}}
 }%
 
 CCProgram pbr-vs %{

@@ -30,6 +30,10 @@ export default class NormalVectorNode extends ShaderNode {
     }
 
     generateCode () {
+        if (this.data.m_Space < 100)
+        {
+            this.data.m_Space += 100
+        }
         let name = 'normal';
         if (this.data.m_Space === NormalSpace.Object) {
             name = 'normal';

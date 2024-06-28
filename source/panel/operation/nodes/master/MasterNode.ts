@@ -2,8 +2,18 @@ import { ShaderNode, ShaderSlot, ShaderPropery } from "../../base";
 import fs from 'fs';
 import path from 'path';
 import ShaderGraph from "../../shadergraph";
-import { ConcretePrecisionType, TextureConcretePrecision, NormalSpace, NormalMapSpace, ViewDirectionSpace, PositionSpace } from "../../type";
+import { ConcretePrecisionType, TextureConcretePrecision, NormalSpace, NormalMapSpace, ViewDirectionSpace, PositionSpace, WorldTangent } from "../../type";
 import { shaderTemplatesDir } from "../../utils";
+
+const PROPERTY_NAME = '{{PROP_NAME}}'
+
+const BOOLEAN_PROP_TEMPLATE = `
+#if {{PROP_NAME}}_PROP
+    bool {{PROP_NAME}} = true;
+#else
+    bool {{PROP_NAME}} = false;
+#endif
+`
 
 function findConnectNodes (slot: ShaderSlot, nodes: ShaderNode[]) {
     if (!slot.connectSlot) return;
@@ -85,6 +95,7 @@ export default class MasterNode extends ShaderNode {
         let uniform = '\n';
         let mtl = '\n'
         let uniformSampler = '';
+        let toggles = '\n'
 
         let properties = this.properties;
         properties.sort((a, b) => {
@@ -130,17 +141,24 @@ export default class MasterNode extends ShaderNode {
                 precision = 'samplerCube'
                 mtlValue = 'white'
             }
+            else if (concretePrecision === 5){
+                toggles += BOOLEAN_PROP_TEMPLATE.replace(/{{PROP_NAME}}/g, p.name)
+            }
 
             let editorStr = isColor ? `, editor: { type: color }` : ''
 
-            if (concretePrecision < TextureConcretePrecision.Texture2D) {
-                uniform += `    ${precision} ${p.name};\n`;
-                blockUniformCount++;
+            if (concretePrecision !== 5)
+            {
+                if (concretePrecision < TextureConcretePrecision.Texture2D) {
+                    uniform += `    ${precision} ${p.name};\n`;
+                    blockUniformCount++;
+                }
+                else {
+                    uniformSampler += `  uniform ${precision} ${p.name};\n`;
+                }
+                
+                mtl += `        ${p.name}: { value: ${mtlValue} ${editorStr}}\n`
             }
-            else {
-                uniformSampler += `  uniform ${precision} ${p.name};\n`;
-            }
-            mtl += `        ${p.name}: { value: ${mtlValue} ${editorStr}}\n`
         })
 
         if (blockUniformCount === 0) {
@@ -151,6 +169,7 @@ export default class MasterNode extends ShaderNode {
             uniform,
             uniformSampler,
             mtl,
+            toggles
         };
     }
 
@@ -209,6 +228,10 @@ export default class MasterNode extends ShaderNode {
 
         if (depVarings.includes(NormalSpace.World) || depVarings.includes(NormalSpace.View) || depVarings.includes(NormalSpace.Tangent) || depVarings.includes(NormalMapSpace)) {
             vs_varing.push('vec3 worldNormal = normalize((matWorldIT * vec4(normal, 0.0)).xyz);');
+        }
+        if (depVarings.includes(WorldTangent))
+        {
+            vs_varing.push('vec3 worldTangent = normalize((matWorldIT * tangent).xyz);');
         }
         if (depVarings.includes(NormalSpace.View)) {
             vs_varing.push('vec3 viewNormal = normalize((cc_matView * vec4(worldNormal, 0.0)).xyz);')
@@ -295,6 +318,13 @@ export default class MasterNode extends ShaderNode {
         if (depVarings.includes(ViewDirectionSpace.Tangent)) {
             
         }
+        if (depVarings.includes(WorldTangent))
+        {
+            vs_varing_define.push('out vec3 v_worldTangent;')
+            vs_varing.push('v_worldTangent = worldTangent;');
+            fs_varing_define.push('in vec3 v_worldTangent;');
+            fs_varing.push('vec3 worldTangent = v_worldTangent;');
+        }
 
         code = code.replace('{{vs_varing_define}}', vs_varing_define.map(d => '  ' + d).join('\n'))
         code = code.replace('{{vs_varing}}', vs_varing.map(d => '    ' + d).join('\n'))
@@ -327,6 +357,7 @@ export default class MasterNode extends ShaderNode {
         code = code.replace('{{properties}}', props.uniform);
         code = code.replace('{{properties_sampler}}', props.uniformSampler);
         code = code.replace('{{properties_mtl}}', props.mtl); 
+        code = code.replace('{{properties_booleans}}', props.toggles)
 
         
         // old shader graph version do not have vertex slots

@@ -1,0 +1,29 @@
+CCProgram shader_graph_normal %{
+
+  vec3 PerturbNormal(vec3 surf_pos, vec3 surf_norm, float height, float scale)
+  {
+    vec3 vSigmaS = dFdx( surf_pos );
+    vec3 vSigmaT = dFdy( surf_pos );
+    vec3 vN = surf_norm;
+    vec3 vR1 = cross( vSigmaT , vN );
+    vec3 vR2 = cross( vN , vSigmaS );
+    float fDet = dot( vSigmaS , vR1 );
+    float dBs = dFdx( height );
+    float dBt = dFdy( height );
+    vec3 vSurfGrad = scale * 0.05 * sign( fDet ) * ( dBs * vR1 + dBt * vR2 );
+    return normalize ( abs( fDet ) * vN - vSurfGrad );
+  }
+
+vec3 NormalFromHeight(float height, float strength, vec3 worldNormal, vec3 worldTangent, vec3 worldPosition)
+{
+    vec3 result = PerturbNormal(worldPosition, worldNormal, height, strength);
+    mat3 TBN = mat3(worldNormal, worldTangent, cross(worldNormal, worldTangent));
+    return normalize(TBN * result);
+}
+
+vec3 BlendNormals(vec3 A, vec3 B)
+{
+    return normalize(vec3(A.rg + B.rg, A.b * B.b));
+}
+
+}%

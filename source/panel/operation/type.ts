@@ -35,3 +35,5 @@ export enum ViewDirectionSpace {
 }
 
 export const NormalMapSpace = 300;
+
+export const WorldTangent = 400;

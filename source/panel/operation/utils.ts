@@ -32,9 +32,12 @@ let ValueElements = {
     mat4: ['e00', 'e01', 'e02', 'e03']
 }
 
-export function getValueElement (value: any | number, index: number): number {
+export function getValueElement (value: any | number, index: number): number | boolean {
     if (typeof value === 'number') {
         return value;
+    }
+    else if (typeof value === 'boolean'){
+        return value
     }
 
     let elements;
@@ -53,7 +56,12 @@ export function getValueElement (value: any | number, index: number): number {
 }
 
 export function getValueElementStr(value: object | number, index: number): string {
-    return getFloatString(getValueElement(value, index));
+    let val = getValueElement(value, index)
+    if (typeof val === 'boolean')
+    {
+        val = val ? 1 : 0
+    }
+    return getFloatString(val);
 }
 
 export function getValueConcretePrecision (value) {
@@ -74,6 +82,10 @@ export function getValueConcretePrecision (value) {
         else if (value.m_SerializedCubemap !== undefined) {
             valueConretePresition = TextureConcretePrecision.TextureCube;
         }
+    }
+    else if (typeof value === 'boolean')
+    {
+        valueConretePresition = 5
     }
     return valueConretePresition;
 }
@@ -97,6 +109,10 @@ export function getPrecisionName (precision: number) {
     }
     else if (precision === TextureConcretePrecision.TextureCube) {
         name = 'samplerCube';
+    }
+    else if (precision === 5)
+    {
+        name = 'bool'
     }
     return name;
 }
